@@ -26,9 +26,19 @@ An AI-powered UI component generator built with React, Vite, Tailwind CSS, and G
 ## 🚀 Run Locally
 
 ```bash
-git clone https://github.com/Adi0-25/GenUI.git
-cd GenUI
+git clone https://github.com/Adi0-25/GEN-AI.git
+cd GEN-AI/GenUI-main
 npm install
 ```
 
-Create a `.env` file and add:
+Create a `.env` file in the `GenUI-main` folder and add your Gemini API key and any other required variables. Example:
+
+```
+VITE_GEMINI_API_KEY=your_api_key_here
+```
+
+Then run:
+
+```bash
+npm run dev
+```
