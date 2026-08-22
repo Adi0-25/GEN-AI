@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd GenUI-main && npm install && npm run build",
+  "outputDirectory": "GenUI-main/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
