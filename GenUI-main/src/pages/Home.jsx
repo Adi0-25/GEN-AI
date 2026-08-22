@@ -41,6 +41,13 @@ const Home = ({ darkMode, setDarkMode }) => {
   const [promptHistory, setPromptHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Multiple API keys for fallback
+  const API_KEYS = [
+    import.meta.env.VITE_GEMINI_API_KEY,
+    import.meta.env.VITE_GEMINI_API_KEY_2,
+    import.meta.env.VITE_GEMINI_API_KEY_3,
+  ].filter(Boolean); // Remove undefined keys
+
   // Load history from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('genui-prompt-history');
@@ -65,20 +72,34 @@ const Home = ({ darkMode, setDarkMode }) => {
     return match ? match[1].trim() : response.trim();
   }
 
-  const ai = new GoogleGenAI({
-    apiKey: import.meta.env.VITE_GEMINI_API_KEY
-  });
-
   async function getResponse() {
     if (!prompt.trim()) return toast.error("Please describe your component first");
+
+    if (API_KEYS.length === 0) {
+      return toast.error("API Keys not configured. Please contact admin.");
+    }
 
     try {
       setLoading(true);
       saveToHistory(prompt.trim());
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `
-     You are an experienced programmer with expertise in web development and UI/UX design. You create modern, animated, and fully responsive UI components. You are highly skilled in HTML, CSS, Tailwind CSS, Bootstrap, JavaScript, React, Next.js, Vue.js, Angular, and more.
+
+      let response = null;
+      let lastError = null;
+
+      // Try each API key until one works
+      for (let i = 0; i < API_KEYS.length; i++) {
+        try {
+          const apiKey = API_KEYS[i];
+          const ai = new GoogleGenAI({
+            apiKey: apiKey
+          });
+
+          console.log(`Attempting API key ${i + 1} of ${API_KEYS.length}`);
+          
+          response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: `
+      You are an experienced programmer with expertise in web development and UI/UX design. You create modern, animated, and fully responsive UI components. You are highly skilled in HTML, CSS, Tailwind CSS, Bootstrap, and JavaScript.
 
 Now, generate a UI component for: ${prompt}  
 Framework to use: ${frameWork.value}  
@@ -91,14 +112,49 @@ Requirements:
 - Return ONLY the code, formatted properly in **Markdown fenced code blocks**.  
 - Do NOT include explanations, text, comments, or anything else besides the code.  
 - And give the whole code in a single HTML file.
-      `,
-      });
+            `,
+          });
+
+          // If successful, break out of the loop
+          if (response) {
+            console.log(`API key ${i + 1} succeeded`);
+            break;
+          }
+        } catch (error) {
+          lastError = error;
+          console.error(`API key ${i + 1} failed:`, error.message);
+          
+          // If it's the last key, throw the error
+          if (i === API_KEYS.length - 1) {
+            throw lastError;
+          }
+          // Otherwise, try the next key
+          continue;
+        }
+      }
+
+      if (!response) {
+        throw new Error("No API keys available or all failed");
+      }
 
       setCode(extractCode(response.text));
       setOutputScreen(true);
+      toast.success("Component generated successfully!");
     } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong while generating code");
+      console.error("API Error:", error);
+      
+      // More specific error messages
+      if (error.message.includes("401") || error.message.includes("authentication")) {
+        toast.error("Invalid API Key. Please check your Gemini API keys.");
+      } else if (error.message.includes("429")) {
+        toast.error("Rate limit exceeded. Please wait a moment and try again.");
+      } else if (error.message.includes("quota")) {
+        toast.error("API quota exceeded. Please try again later.");
+      } else if (error.message.includes("not found") || error.message.includes("404")) {
+        toast.error("API endpoint not found. Please try again.");
+      } else {
+        toast.error("All API keys failed. Please try again or contact support.");
+      }
     } finally {
       setLoading(false);
     }
