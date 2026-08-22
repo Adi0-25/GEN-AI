@@ -3,7 +3,7 @@
 An AI-powered UI component generator built with React, Vite, Tailwind CSS, and Google Gemini API.
 
 ## 🔗 Live Demo
-[https://gen-ui-8mk7.vercel.app](https://gen-ui-8mk7.vercel.app)
+[https://gen-ai-coral.vercel.app/](https://gen-ai-coral.vercel.app/)
 
 ## ✨ Features
 - Generate UI components using AI (Google Gemini)
